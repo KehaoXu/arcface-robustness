@@ -11,7 +11,7 @@ This project studies how image qualities affect ArcFace face recognition embeddi
   Generates degraded images by applying downsampling and Gaussian noise.
 
 - **preprocessing.py**  
-  Resize the original dataset into (512, 512).
+  Resizes the original dataset to (512, 512) before applying ResShift.
 
 ## Others
 
