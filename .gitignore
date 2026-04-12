@@ -1,0 +1,7 @@
+lfw
+.vscode
+__pycache__/
+*.pyc
+.DS_Store
+ResShift/assets/
+ResShift/testdata/
