@@ -46,6 +46,7 @@ def main():
         condition_dir=args.original_dir,
         output_dir=output_dir,
         condition_name="original",
+        eligible_only=True,
     )
     summarize_embedding_success(
         embedding_metadata_path=original_embedding_metadata_path,

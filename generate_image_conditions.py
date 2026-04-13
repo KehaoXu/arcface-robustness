@@ -1,4 +1,5 @@
 import argparse
+import csv
 import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -63,6 +64,27 @@ def _collect_image_paths(input_dir):
     ]
 
 
+def _load_sample_records(sample_index_path):
+    sample_index_path = Path(sample_index_path)
+    with sample_index_path.open("r", newline="", encoding="utf-8") as file_obj:
+        return list(csv.DictReader(file_obj))
+
+
+def _collect_image_paths_from_sample_index(original_dir, sample_index_path, eligible_only=False):
+    original_dir = Path(original_dir)
+    sample_records = _load_sample_records(sample_index_path)
+
+    image_paths = []
+    for sample_record in sample_records:
+        if eligible_only and sample_record.get("include_in_protocol") != "1":
+            continue
+        image_path = original_dir / sample_record["relative_path"]
+        if image_path.is_file() and image_path.suffix.lower() in IMAGE_EXTENSIONS:
+            image_paths.append(image_path)
+
+    return sorted(image_paths)
+
+
 def generate_degraded_conditions(
     original_dir,
     downsample_dir,
@@ -73,11 +95,20 @@ def generate_degraded_conditions(
     jpeg_quality=75,
     max_workers=None,
     skip_existing=False,
+    sample_index_path=None,
+    eligible_only=False,
 ):
     original_dir = Path(original_dir)
     downsample_dir = Path(downsample_dir)
     noise_dir = Path(noise_dir)
-    image_paths = _collect_image_paths(original_dir)
+    if sample_index_path is None:
+        image_paths = _collect_image_paths(original_dir)
+    else:
+        image_paths = _collect_image_paths_from_sample_index(
+            original_dir=original_dir,
+            sample_index_path=sample_index_path,
+            eligible_only=eligible_only,
+        )
 
     if not image_paths:
         raise FileNotFoundError(f"No supported images found under {original_dir}")
@@ -132,6 +163,8 @@ def generate_degraded_conditions(
         "scheduled_tasks": len(task_args),
         "downsample_dir": str(downsample_dir),
         "noise_dir": str(noise_dir),
+        "sample_index_path": str(sample_index_path) if sample_index_path is not None else "",
+        "eligible_only": eligible_only,
     }
 
 
@@ -141,11 +174,13 @@ def parse_args():
     parser.add_argument("--downsample-dir", default="dataset/downsample")
     parser.add_argument("--noise-dir", default="dataset/noise")
     parser.add_argument("--downsample-scale", type=float, default=0.5)
-    parser.add_argument("--blur-radius", type=float, default=1.5)
+    parser.add_argument("--blur-radius", type=float, default=0)
     parser.add_argument("--gaussian-sigma", type=float, default=22.0)
     parser.add_argument("--jpeg-quality", type=int, default=75)
     parser.add_argument("--max-workers", type=int, default=8)
     parser.add_argument("--skip-existing", action="store_true")
+    parser.add_argument("--sample-index-path")
+    parser.add_argument("--eligible-only", action="store_true")
     return parser.parse_args()
 
 
@@ -161,6 +196,8 @@ def main():
         jpeg_quality=args.jpeg_quality,
         max_workers=args.max_workers,
         skip_existing=args.skip_existing,
+        sample_index_path=args.sample_index_path,
+        eligible_only=args.eligible_only,
     )
     print({"degradation_summary": degradation_summary})
 

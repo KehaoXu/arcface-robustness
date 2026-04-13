@@ -12,8 +12,9 @@ This project evaluates how image degradation affects ArcFace verification perfor
    - extract embeddings
    - compute ROC / AUC / EER
    - save the fixed threshold
-3. Evaluate `downsample` and `noise` with that fixed threshold.
-4. Compare conditions using:
+3. Generate `downsample` and `noise` for the protocol samples you want to evaluate.
+4. Evaluate `downsample` and `noise` with that fixed threshold.
+5. Compare conditions using:
    - fixed-threshold classification metrics
    - embedding drift relative to `original`
    - genuine / impostor score distributions
@@ -24,7 +25,7 @@ This project evaluates how image degradation affects ArcFace verification perfor
   Resizes and converts the original LFW dataset into a normalized directory structure.
 
 - `generate_image_conditions.py`
-  Generates `downsample` and `noise` image conditions from `dataset/original`. The `downsample` quality is controlled by `downsample_scale`, and the `noise` quality is controlled by `gaussian_sigma`.
+  Generates `downsample` and `noise` image conditions from `dataset/original`. The `downsample` quality is controlled by `downsample_scale`, and the `noise` quality is controlled by `gaussian_sigma`. It can optionally read `sample_index.csv` and only process protocol-eligible samples.
 
 - `run_baseline.py`
   Builds the baseline protocol and fixed threshold from `dataset/original`.
@@ -53,16 +54,18 @@ This project evaluates how image degradation affects ArcFace verification perfor
 python prepare_lfw.py --input-dir lfw/lfw-deepfunneled/lfw-deepfunneled --output-dir dataset/original
 ```
 
-### Step 2. Generate degraded image conditions
-
-```powershell
-python generate_image_conditions.py --original-dir dataset/original --downsample-dir dataset/downsample --noise-dir dataset/noise
-```
-
-### Step 3. Build the baseline on original images
+### Step 2. Build the baseline on original images
 
 ```powershell
 python run_baseline.py --original-dir dataset/original --output-dir results/baseline
+```
+
+### Step 3. Generate degraded image conditions
+
+This filtered form only processes samples already marked as protocol-eligible in `results/baseline/sample_index.csv`.
+
+```powershell
+python generate_image_conditions.py --original-dir dataset/original --downsample-dir dataset/downsample --noise-dir dataset/noise --sample-index-path results/baseline/sample_index.csv --eligible-only
 ```
 
 ### Step 4. Evaluate the `downsample` condition

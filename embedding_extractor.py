@@ -39,8 +39,17 @@ class FaceEmbedder:
         condition_dir,
         output_dir,
         condition_name,
+        eligible_only=False,
     ):
         sample_records = load_csv_records(sample_index_path)
+        if eligible_only:
+            sample_records = [
+                sample_record
+                for sample_record in sample_records
+                if sample_record.get("include_in_protocol") == "1"
+            ]
+        if not sample_records:
+            raise ValueError(f"No sample records available for condition {condition_name}.")
         condition_dir = Path(condition_dir)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
