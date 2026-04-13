@@ -1,6 +1,6 @@
 # ArcFace Robustness Analysis
 
-This project evaluates how image degradation and ResShift restoration affect ArcFace verification performance.
+This project evaluates how image degradation affects ArcFace verification performance.
 
 ## Protocol
 
@@ -12,7 +12,7 @@ This project evaluates how image degradation and ResShift restoration affect Arc
    - extract embeddings
    - compute ROC / AUC / EER
    - save the fixed threshold
-3. Evaluate `downsample`, `noise`, `downsample_resshift`, and `noise_resshift` with that fixed threshold.
+3. Evaluate `downsample` and `noise` with that fixed threshold.
 4. Compare conditions using:
    - fixed-threshold classification metrics
    - embedding drift relative to `original`
@@ -24,7 +24,7 @@ This project evaluates how image degradation and ResShift restoration affect Arc
   Resizes and converts the original LFW dataset into a normalized directory structure.
 
 - `generate_image_conditions.py`
-  Migrates the old notebook preprocessing into a script that generates `downsample` and `noise`, and can normalize externally restored `downsample_resshift` and `noise_resshift` directories into the expected layout.
+  Generates `downsample` and `noise` image conditions from `dataset/original`. The `downsample` quality is controlled by `downsample_scale`, and the `noise` quality is controlled by `gaussian_sigma`.
 
 - `run_baseline.py`
   Builds the baseline protocol and fixed threshold from `dataset/original`.
@@ -44,20 +44,43 @@ This project evaluates how image degradation and ResShift restoration affect Arc
   - `original`
   - `downsample`
   - `noise`
-  - `downsample_resshift`
-  - `noise_resshift`
 
 ## Example Commands
 
+### Step 1. Prepare normalized LFW images
+
 ```powershell
 python prepare_lfw.py --input-dir lfw/lfw-deepfunneled/lfw-deepfunneled --output-dir dataset/original
-python generate_image_conditions.py --original-dir dataset/original --downsample-dir dataset/downsample --noise-dir dataset/noise --downsample-resshift-source-dir path/to/resshift_downsample_output --noise-resshift-source-dir path/to/resshift_noise_output --downsample-resshift-dir dataset/downsample_resshift --noise-resshift-dir dataset/noise_resshift
+```
+
+### Step 2. Generate degraded image conditions
+
+```powershell
+python generate_image_conditions.py --original-dir dataset/original --downsample-dir dataset/downsample --noise-dir dataset/noise
+```
+
+### Step 3. Build the baseline on original images
+
+```powershell
 python run_baseline.py --original-dir dataset/original --output-dir results/baseline
+```
+
+### Step 4. Evaluate the `downsample` condition
+
+```powershell
 python run_condition_evaluation.py --condition-name downsample --condition-dir dataset/downsample --baseline-dir results/baseline --output-dir results/downsample
+```
+
+### Step 5. Evaluate the `noise` condition
+
+```powershell
 python run_condition_evaluation.py --condition-name noise --condition-dir dataset/noise --baseline-dir results/baseline --output-dir results/noise
-python run_condition_evaluation.py --condition-name downsample_resshift --condition-dir dataset/downsample_resshift --baseline-dir results/baseline --output-dir results/downsample_resshift
-python run_condition_evaluation.py --condition-name noise_resshift --condition-dir dataset/noise_resshift --baseline-dir results/baseline --output-dir results/noise_resshift
-python run_full_evaluation.py --baseline-dir results/baseline --original-dir results/baseline --downsample-dir results/downsample --noise-dir results/noise --downsample-resshift-dir results/downsample_resshift --noise-resshift-dir results/noise_resshift --aggregate-dir results/final
+```
+
+### Step 6. Aggregate all results and generate figures
+
+```powershell
+python run_full_evaluation.py --baseline-dir results/baseline --original-dir results/baseline --downsample-dir results/downsample --noise-dir results/noise --aggregate-dir results/final
 ```
 
 ## Outputs

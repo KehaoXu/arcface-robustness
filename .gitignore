@@ -1,7 +1,12 @@
 lfw
-.vscode
-__pycache__/
-*.pyc
-.DS_Store
 ResShift/assets/
 ResShift/testdata/
+dataset
+logs
+__pycache__/
+.vscode
+.codex
+*.pyc
+.DS_Store
+*.png
+*.jpg
