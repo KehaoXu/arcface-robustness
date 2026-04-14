@@ -1,0 +1,8 @@
+{
+  "genuine_pairs": 13583,
+  "impostor_pairs": 13583,
+  "total_pairs": 27166,
+  "random_seed": 42,
+  "max_genuine_pairs_per_identity": 100,
+  "eligible_identities": 158
+}

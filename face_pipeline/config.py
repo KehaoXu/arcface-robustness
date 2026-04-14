@@ -18,3 +18,4 @@ DEFAULT_DETECTION_SIZE = (640, 640)
 DEFAULT_MODEL_NAME = "buffalo_l"
 DEFAULT_PROVIDERS = ["CUDAExecutionProvider", "CPUExecutionProvider"]
 DEFAULT_RESULTS_DIR = Path("results")
+

@@ -1,8 +1,6 @@
 import argparse
-from pathlib import Path
 
-from evaluation import aggregate_condition_results
-from visualization import generate_all_figures
+from face_pipeline.workflows import run_full_evaluation_pipeline
 
 
 def parse_args():
@@ -26,16 +24,14 @@ def main():
         "downsample_resshift": args.downsample_resshift_dir,
         "noise_resshift": args.noise_resshift_dir,
     }
-    aggregate_dir = Path(args.aggregate_dir)
-    aggregate_condition_results(condition_result_dirs=condition_result_dirs, output_dir=aggregate_dir)
-    generate_all_figures(
+    aggregate_output_dir = run_full_evaluation_pipeline(
         baseline_dir=args.baseline_dir,
-        aggregate_dir=aggregate_dir,
+        aggregate_dir=args.aggregate_dir,
         condition_result_dirs=condition_result_dirs,
-        figure_dir=aggregate_dir / "figures",
     )
-    print(f"Aggregate outputs written to {aggregate_dir}")
+    print(f"Aggregate outputs written to {aggregate_output_dir}")
 
 
 if __name__ == "__main__":
     main()
+

@@ -3,7 +3,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from embedding_extractor import load_csv_records
+from face_pipeline.io_utils import load_csv_records
 
 
 def plot_baseline_roc(roc_points_path, output_path):
@@ -118,3 +118,4 @@ def generate_all_figures(baseline_dir, aggregate_dir, condition_result_dirs, fig
     plot_condition_metrics(Path(aggregate_dir) / "metrics_summary.csv", figure_dir / "condition_metrics.png")
     plot_score_distributions(condition_result_dirs, figure_dir / "score_distributions.png")
     plot_embedding_drift(condition_result_dirs, figure_dir / "embedding_drift.png")
+

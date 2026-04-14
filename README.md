@@ -2,39 +2,66 @@
 
 This project evaluates how image degradation affects ArcFace verification performance.
 
-## Protocol
+The reusable pipeline logic lives under `face_pipeline/`, while the root-level `*.py` files are the CLI entry points used in the protocol below.
 
-1. Prepare the original `LFW` images as a normalized `dataset/original` directory.
-2. Build the baseline on `original` only:
-   - create `sample_index`
-   - keep identities with at least `10` images
-   - generate a fixed `pair_manifest`
-   - extract embeddings
-   - compute ROC / AUC / EER
-   - save the fixed threshold
-3. Generate `downsample` and `noise` for the protocol samples you want to evaluate.
-4. Evaluate `downsample` and `noise` with that fixed threshold.
-5. Compare conditions using:
-   - fixed-threshold classification metrics
-   - embedding drift relative to `original`
-   - genuine / impostor score distributions
+## Protocol 
 
-## Canonical Python Entry Points
+1. Prepare the original `LFW` images under a normalized `dataset/original` directory with consistent preprocessing (e.g., resize).
+   Interface: `prepare_dataset.py`
 
-- `prepare_lfw.py`
-  Resizes and converts the original LFW dataset into a normalized directory structure.
+```powershell
+python prepare_dataset.py --input-dir lfw/lfw-deepfunneled/lfw-deepfunneled --output-dir dataset/original
+```
 
-- `generate_image_conditions.py`
-  Generates `downsample` and `noise` image conditions from `dataset/original`. The `downsample` quality is controlled by `downsample_scale`, and the `noise` quality is controlled by `gaussian_sigma`. It can optionally read `sample_index.csv` and only process protocol-eligible samples.
+2. Build `sample_index` from `dataset/original`, keep identities with at least `10` images, and write `sample_index.csv` plus `identity_filter_summary.json`.
+   Interface: `build_sample_index.py`
 
-- `run_baseline.py`
-  Builds the baseline protocol and fixed threshold from `dataset/original`.
+```powershell
+python build_sample_index.py --original-dir dataset/original --output-dir results/baseline
+```
 
-- `run_condition_evaluation.py`
-  Evaluates one condition against the baseline protocol and threshold.
+3. Build a fixed `pair_manifest` from the protocol-eligible samples for all later evaluations.
+   Interface: `build_pair_manifest.py`
 
-- `run_full_evaluation.py`
-  Aggregates all condition outputs and generates the final comparison figures.
+```powershell
+python build_pair_manifest.py --sample-index-path results/baseline/sample_index.csv --output-dir results/baseline
+```
+
+4. Evaluate `original`: extract embeddings, compute cosine similarity scores, compute ROC / AUC / EER, and save the fixed EER threshold.
+   Interface: `evaluate_original.py`
+
+```powershell
+python evaluate_original.py --original-dir dataset/original --baseline-dir results/baseline
+```
+
+5. Generate `downsample` and `noise` images only for samples in the protocol.
+   Interface: `generate_downsample_conditions.py`, `generate_noise_conditions.py`
+
+```powershell
+python generate_downsample_conditions.py --original-dir dataset/original --output-dir dataset/downsample --sample-index-path results/baseline/sample_index.csv --eligible-only
+```
+
+```powershell
+python generate_noise_conditions.py --original-dir dataset/original --output-dir dataset/noise --sample-index-path results/baseline/sample_index.csv --eligible-only
+```
+
+6. Evaluate the `downsample` and `noise` condition using the same `pair_manifest` and the fixed threshold.
+   Interface: `evaluate_condition.py`
+
+```powershell
+python evaluate_condition.py --condition-name downsample --condition-dir dataset/downsample --baseline-dir results/baseline --output-dir results/downsample
+```
+
+```powershell
+python evaluate_condition.py --condition-name noise --condition-dir dataset/noise --baseline-dir results/baseline --output-dir results/noise
+```
+
+7. Compare conditions using fixed-threshold classification metrics, embedding drift relative to `original`, and genuine / impostor score distributions.
+   Interface: `aggregate_results.py`
+
+```powershell
+python aggregate_results.py --baseline-dir results/baseline --original-dir results/baseline --downsample-dir results/downsample --noise-dir results/noise --aggregate-dir results/final
+```
 
 ## Naming Conventions
 
@@ -46,45 +73,7 @@ This project evaluates how image degradation affects ArcFace verification perfor
   - `downsample`
   - `noise`
 
-## Example Commands
-
-### Step 1. Prepare normalized LFW images
-
-```powershell
-python prepare_lfw.py --input-dir lfw/lfw-deepfunneled/lfw-deepfunneled --output-dir dataset/original
-```
-
-### Step 2. Build the baseline on original images
-
-```powershell
-python run_baseline.py --original-dir dataset/original --output-dir results/baseline
-```
-
-### Step 3. Generate degraded image conditions
-
-This filtered form only processes samples already marked as protocol-eligible in `results/baseline/sample_index.csv`.
-
-```powershell
-python generate_image_conditions.py --original-dir dataset/original --downsample-dir dataset/downsample --noise-dir dataset/noise --sample-index-path results/baseline/sample_index.csv --eligible-only
-```
-
-### Step 4. Evaluate the `downsample` condition
-
-```powershell
-python run_condition_evaluation.py --condition-name downsample --condition-dir dataset/downsample --baseline-dir results/baseline --output-dir results/downsample
-```
-
-### Step 5. Evaluate the `noise` condition
-
-```powershell
-python run_condition_evaluation.py --condition-name noise --condition-dir dataset/noise --baseline-dir results/baseline --output-dir results/noise
-```
-
-### Step 6. Aggregate all results and generate figures
-
-```powershell
-python run_full_evaluation.py --baseline-dir results/baseline --original-dir results/baseline --downsample-dir results/downsample --noise-dir results/noise --aggregate-dir results/final
-```
+After all individual steps are validated, you can optionally run the baseline end to end with `build_baseline.py`.
 
 ## Outputs
 

@@ -1,12 +1,54 @@
-import csv
 from pathlib import Path
 
 import cv2
 import numpy as np
+import onnxruntime as ort
 from insightface.app import FaceAnalysis
 from tqdm import tqdm
 
-from experiment_config import DEFAULT_DETECTION_SIZE, DEFAULT_MODEL_NAME, DEFAULT_PROVIDERS
+from face_pipeline.config import DEFAULT_DETECTION_SIZE, DEFAULT_MODEL_NAME, DEFAULT_PROVIDERS
+from face_pipeline.io_utils import load_csv_records, load_embedding_lookup, write_csv_records
+
+
+CUDA_PROVIDER = "CUDAExecutionProvider"
+
+
+def _ensure_cuda_provider_requested(provider_names):
+    if CUDA_PROVIDER not in provider_names:
+        raise RuntimeError(
+            "Embedding extraction requires GPU, but CUDAExecutionProvider is not in the requested providers: "
+            f"{provider_names}"
+        )
+
+
+def _ensure_cuda_provider_available():
+    available_providers = ort.get_available_providers()
+    if CUDA_PROVIDER not in available_providers:
+        raise RuntimeError(
+            "Embedding extraction requires GPU, but ONNX Runtime CUDAExecutionProvider is unavailable. "
+            f"Available providers: {available_providers}"
+        )
+
+
+def _iter_model_sessions(face_app):
+    for model in getattr(face_app, "models", {}).values():
+        session = getattr(model, "session", None)
+        if session is not None:
+            yield session
+
+
+def _ensure_cuda_session_bound(face_app):
+    session_providers = []
+    for session in _iter_model_sessions(face_app):
+        providers = session.get_providers()
+        session_providers.extend(providers)
+        if CUDA_PROVIDER in providers:
+            return
+
+    raise RuntimeError(
+        "Embedding extraction requires GPU, but InsightFace did not bind any model to CUDAExecutionProvider. "
+        f"Model session providers: {session_providers or 'none'}"
+    )
 
 
 class FaceEmbedder:
@@ -18,8 +60,11 @@ class FaceEmbedder:
         ctx_id=0,
     ):
         provider_names = providers or DEFAULT_PROVIDERS
+        _ensure_cuda_provider_requested(provider_names)
+        _ensure_cuda_provider_available()
         self.app = FaceAnalysis(name=model_name, providers=provider_names)
         self.app.prepare(ctx_id=ctx_id, det_size=det_size)
+        _ensure_cuda_session_bound(self.app)
 
     def extract_embedding(self, image_path):
         image_path = Path(image_path)
@@ -93,30 +138,9 @@ class FaceEmbedder:
         return metadata_path, matrix_path
 
 
-def load_csv_records(csv_path):
-    csv_path = Path(csv_path)
-    with csv_path.open("r", newline="", encoding="utf-8") as file_obj:
-        return list(csv.DictReader(file_obj))
-
-
-def write_csv_records(csv_path, records, fieldnames):
-    csv_path = Path(csv_path)
-    csv_path.parent.mkdir(parents=True, exist_ok=True)
-    with csv_path.open("w", newline="", encoding="utf-8") as file_obj:
-        writer = csv.DictWriter(file_obj, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(records)
-
-
-def load_embedding_lookup(metadata_path, matrix_path):
-    metadata_records = load_csv_records(metadata_path)
-    embedding_array = np.load(matrix_path, allow_pickle=False)
-    embedding_lookup = {}
-
-    for metadata_record in metadata_records:
-        if metadata_record["success"] != "1":
-            continue
-        embedding_index = int(metadata_record["embedding_index"])
-        embedding_lookup[metadata_record["image_id"]] = embedding_array[embedding_index]
-
-    return metadata_records, embedding_lookup
+__all__ = [
+    "FaceEmbedder",
+    "load_csv_records",
+    "load_embedding_lookup",
+    "write_csv_records",
+]
