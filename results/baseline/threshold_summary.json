@@ -1,0 +1,8 @@
+{
+  "auc": 0.988780213394463,
+  "eer": 0.024276171405778646,
+  "eer_threshold": 0.1275463998,
+  "valid_pairs": 26940,
+  "genuine_pairs": 13474,
+  "impostor_pairs": 13466
+}

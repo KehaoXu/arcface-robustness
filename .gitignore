@@ -3,6 +3,7 @@ ResShift/assets/
 ResShift/testdata/
 dataset
 logs
+sbatch
 __pycache__/
 .vscode
 .codex
@@ -11,3 +12,6 @@ __pycache__/
 *.png
 *.jpg
 *.sbatch
+*.csv
+*.npy
+*.pth

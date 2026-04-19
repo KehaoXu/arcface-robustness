@@ -1,0 +1,21 @@
+{
+  "accuracy": 0.9771343726800297,
+  "tar": 0.977883330859433,
+  "far": 0.023615030447051835,
+  "frr": 0.02211666914056702,
+  "true_positive": 13176,
+  "false_positive": 318,
+  "true_negative": 13148,
+  "false_negative": 298,
+  "genuine_count": 13474,
+  "impostor_count": 13466,
+  "genuine_mean": 0.647411610133984,
+  "genuine_std": 0.1339440817869726,
+  "genuine_median": 0.6681312322499999,
+  "impostor_mean": 0.006980527991571365,
+  "impostor_std": 0.05917059688565221,
+  "impostor_median": 0.0060442444,
+  "threshold": 0.1275463998,
+  "valid_pairs": 26940,
+  "invalid_pairs": 226
+}

@@ -42,6 +42,12 @@ def get_parser(**parser_kwargs):
     parser.add_argument("-o", "--out_path", type=str, default="./results", help="Output path.")
     parser.add_argument("--mask_path", type=str, default="", help="Mask path for inpainting.")
     parser.add_argument("--scale", type=int, default=4, help="Scale factor for SR.")
+    parser.add_argument(
+            "--inference-steps",
+            type=int,
+            default=None,
+            help="Override the number of sampling steps used at inference time.",
+            )
     parser.add_argument("--seed", type=int, default=12345, help="Random seed.")
     parser.add_argument("--bs", type=int, default=1, help="Batch size.")
     parser.add_argument(
@@ -150,6 +156,17 @@ def get_configs(args):
     configs.model.ckpt_path = str(ckpt_path)
     configs.diffusion.params.sf = args.scale
     configs.autoencoder.ckpt_path = str(vqgan_path)
+    default_inference_steps = int(configs.diffusion.params.steps)
+    if args.inference_steps is not None:
+        if args.inference_steps <= 0:
+            raise ValueError("--inference-steps must be a positive integer.")
+        configs.diffusion.params.timestep_respacing = args.inference_steps
+        print(
+            f"Using overridden inference steps: {args.inference_steps} "
+            f"(checkpoint/config default: {default_inference_steps})"
+        )
+    else:
+        configs.diffusion.params.timestep_respacing = default_inference_steps
 
     # save folder
     if not Path(args.out_path).exists():

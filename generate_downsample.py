@@ -1,13 +1,15 @@
 import argparse
 
+from face_pipeline.config import DEFAULT_DOWNSAMPLE_DIR, DEFAULT_ORIGINAL_DIR
 from face_pipeline.conditions import generate_condition_images
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Generate noisy image conditions for ArcFace evaluation.")
-    parser.add_argument("--original-dir", required=True)
-    parser.add_argument("--output-dir", default="dataset/noise")
-    parser.add_argument("--gaussian-sigma", type=float, default=22.0)
+    parser = argparse.ArgumentParser(description="Generate downsampled image conditions for ArcFace evaluation.")
+    parser.add_argument("--original-dir", default=str(DEFAULT_ORIGINAL_DIR))
+    parser.add_argument("--output-dir", default=str(DEFAULT_DOWNSAMPLE_DIR))
+    parser.add_argument("--downsample-scale", type=float, default=0.5)
+    parser.add_argument("--blur-radius", type=float, default=0)
     parser.add_argument("--jpeg-quality", type=int, default=75)
     parser.add_argument("--max-workers", type=int, default=8)
     parser.add_argument("--skip-existing", action="store_true")
@@ -19,10 +21,11 @@ def parse_args():
 def main():
     args = parse_args()
     condition_summary = generate_condition_images(
-        condition_name="noise",
+        condition_name="downsample",
         original_dir=args.original_dir,
         output_dir=args.output_dir,
-        gaussian_sigma=args.gaussian_sigma,
+        downsample_scale=args.downsample_scale,
+        blur_radius=args.blur_radius,
         jpeg_quality=args.jpeg_quality,
         max_workers=args.max_workers,
         skip_existing=args.skip_existing,

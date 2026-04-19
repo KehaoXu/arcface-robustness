@@ -11,23 +11,32 @@ from face_pipeline.io_utils import load_csv_records, load_embedding_lookup, writ
 
 
 CUDA_PROVIDER = "CUDAExecutionProvider"
+CPU_PROVIDER = "CPUExecutionProvider"
 
 
-def _ensure_cuda_provider_requested(provider_names):
-    if CUDA_PROVIDER not in provider_names:
+def _resolve_provider_names(provider_names):
+    requested_providers = list(provider_names or DEFAULT_PROVIDERS)
+    available_providers = list(ort.get_available_providers())
+    available_provider_set = set(available_providers)
+
+    resolved_providers = [
+        provider_name
+        for provider_name in requested_providers
+        if provider_name in available_provider_set
+    ]
+
+    if not resolved_providers and CPU_PROVIDER in available_provider_set:
+        resolved_providers = [CPU_PROVIDER]
+
+    if not resolved_providers:
         raise RuntimeError(
-            "Embedding extraction requires GPU, but CUDAExecutionProvider is not in the requested providers: "
-            f"{provider_names}"
-        )
-
-
-def _ensure_cuda_provider_available():
-    available_providers = ort.get_available_providers()
-    if CUDA_PROVIDER not in available_providers:
-        raise RuntimeError(
-            "Embedding extraction requires GPU, but ONNX Runtime CUDAExecutionProvider is unavailable. "
+            "Embedding extraction requires at least one supported ONNX Runtime provider, but none of the "
+            "requested providers are available. "
+            f"Requested providers: {requested_providers}. "
             f"Available providers: {available_providers}"
         )
+
+    return requested_providers, resolved_providers, available_providers
 
 
 def _iter_model_sessions(face_app):
@@ -37,18 +46,12 @@ def _iter_model_sessions(face_app):
             yield session
 
 
-def _ensure_cuda_session_bound(face_app):
+def _get_session_providers(face_app):
     session_providers = []
     for session in _iter_model_sessions(face_app):
-        providers = session.get_providers()
+        providers = list(session.get_providers())
         session_providers.extend(providers)
-        if CUDA_PROVIDER in providers:
-            return
-
-    raise RuntimeError(
-        "Embedding extraction requires GPU, but InsightFace did not bind any model to CUDAExecutionProvider. "
-        f"Model session providers: {session_providers or 'none'}"
-    )
+    return session_providers
 
 
 class FaceEmbedder:
@@ -59,12 +62,23 @@ class FaceEmbedder:
         det_size=DEFAULT_DETECTION_SIZE,
         ctx_id=0,
     ):
-        provider_names = providers or DEFAULT_PROVIDERS
-        _ensure_cuda_provider_requested(provider_names)
-        _ensure_cuda_provider_available()
+        (
+            requested_provider_names,
+            provider_names,
+            available_provider_names,
+        ) = _resolve_provider_names(providers)
         self.app = FaceAnalysis(name=model_name, providers=provider_names)
         self.app.prepare(ctx_id=ctx_id, det_size=det_size)
-        _ensure_cuda_session_bound(self.app)
+        self.session_providers = _get_session_providers(self.app)
+        if not self.session_providers:
+            raise RuntimeError("FaceAnalysis initialized, but no ONNX Runtime sessions were created.")
+
+        print(
+            "FaceEmbedder initialized with providers "
+            f"{provider_names}. Requested: {requested_provider_names}. "
+            f"Available: {available_provider_names}. "
+            f"Model session providers: {self.session_providers}"
+        )
 
     def extract_embedding(self, image_path):
         image_path = Path(image_path)

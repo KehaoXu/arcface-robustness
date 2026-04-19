@@ -10,6 +10,7 @@ from pathlib import Path
 from loguru import logger
 from omegaconf import OmegaConf
 from contextlib import nullcontext
+from tqdm.auto import tqdm
 
 from utils import util_net
 from utils import util_image
@@ -315,7 +316,15 @@ class ResShiftSampler(BaseSampler):
                     shuffle=False,
                     drop_last=False,
                     )
-            for data in dataloader:
+            data_iter = dataloader
+            if self.rank == 0:
+                data_iter = tqdm(
+                        dataloader,
+                        total=len(dataloader),
+                        desc='Inference',
+                        )
+
+            for data in data_iter:
                 micro_batchsize = math.ceil(bs / self.num_gpus)
                 ind_start = self.rank * micro_batchsize
                 ind_end = ind_start + micro_batchsize
@@ -329,8 +338,10 @@ class ResShiftSampler(BaseSampler):
 
                     for jj in range(results.shape[0]):
                         im_sr = util_image.tensor2img(results[jj], rgb2bgr=True, min_max=(0.0, 1.0))
-                        im_name = Path(micro_data['path'][jj]).stem
-                        im_path = out_path / f"{im_name}.png"
+                        input_image_path = Path(micro_data['path'][jj])
+                        relative_path = input_image_path.relative_to(in_path).with_suffix('.png')
+                        im_path = out_path / relative_path
+                        im_path.parent.mkdir(parents=True, exist_ok=True)
                         util_image.imwrite(im_sr, im_path, chn='bgr', dtype_in='uint8')
             if self.num_gpus > 1:
                 dist.barrier()
@@ -354,4 +365,3 @@ class ResShiftSampler(BaseSampler):
 
 if __name__ == '__main__':
     pass
-

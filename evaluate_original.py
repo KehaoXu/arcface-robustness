@@ -1,11 +1,12 @@
 import argparse
 
+from face_pipeline.config import DEFAULT_ORIGINAL_DIR
 from face_pipeline.workflows import run_original_baseline_evaluation
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate the original baseline using existing sample_index and pair_manifest.")
-    parser.add_argument("--original-dir", required=True)
+    parser.add_argument("--original-dir", default=str(DEFAULT_ORIGINAL_DIR))
     parser.add_argument("--baseline-dir", default="results/baseline")
     parser.add_argument("--model-name", default="buffalo_l")
     return parser.parse_args()
