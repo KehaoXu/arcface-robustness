@@ -48,6 +48,16 @@ python generate_noise.py \
     --eligible-only
 ```
 
+```powershell
+python inference_resshift.py \
+    --inference-steps 4 \
+    -i /scratch/peirong/kxu56/face/dataset/noise \
+    -o /scratch/peirong/kxu56/face/dataset/noise_re \
+    --task faceir \
+    --scale 1 \
+    --bs 1
+```
+
 Useful hyperparameters:
 
 - `generate_downsample.py --downsample-scale 0.5`
