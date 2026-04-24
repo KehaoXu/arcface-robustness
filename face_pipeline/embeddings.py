@@ -1,3 +1,6 @@
+import io
+import os
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 import cv2
@@ -39,6 +42,27 @@ def _resolve_provider_names(provider_names):
     return requested_providers, resolved_providers, available_providers
 
 
+def _get_ort_thread_count():
+    for env_name in ("SLURM_CPUS_PER_TASK", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
+        env_value = os.environ.get(env_name)
+        if not env_value:
+            continue
+        try:
+            thread_count = int(env_value)
+        except ValueError:
+            continue
+        if thread_count > 0:
+            return thread_count
+    return 1
+
+
+def _build_session_options():
+    session_options = ort.SessionOptions()
+    session_options.intra_op_num_threads = _get_ort_thread_count()
+    session_options.inter_op_num_threads = 1
+    return session_options
+
+
 def _iter_model_sessions(face_app):
     for model in getattr(face_app, "models", {}).values():
         session = getattr(model, "session", None)
@@ -62,23 +86,18 @@ class FaceEmbedder:
         det_size=DEFAULT_DETECTION_SIZE,
         ctx_id=0,
     ):
-        (
-            requested_provider_names,
-            provider_names,
-            available_provider_names,
-        ) = _resolve_provider_names(providers)
-        self.app = FaceAnalysis(name=model_name, providers=provider_names)
-        self.app.prepare(ctx_id=ctx_id, det_size=det_size)
+        _, provider_names, _ = _resolve_provider_names(providers)
+        session_options = _build_session_options()
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            self.app = FaceAnalysis(
+                name=model_name,
+                providers=provider_names,
+                sess_options=session_options,
+            )
+            self.app.prepare(ctx_id=ctx_id, det_size=det_size)
         self.session_providers = _get_session_providers(self.app)
         if not self.session_providers:
             raise RuntimeError("FaceAnalysis initialized, but no ONNX Runtime sessions were created.")
-
-        print(
-            "FaceEmbedder initialized with providers "
-            f"{provider_names}. Requested: {requested_provider_names}. "
-            f"Available: {available_provider_names}. "
-            f"Model session providers: {self.session_providers}"
-        )
 
     def extract_embedding(self, image_path):
         image_path = Path(image_path)

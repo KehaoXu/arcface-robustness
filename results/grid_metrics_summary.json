@@ -1,0 +1,10 @@
+{
+  "grid_csv": "results/hyperparameter_grid.csv",
+  "results_root": "results",
+  "output_csv": "results/grid_metrics_summary.csv",
+  "missing_csv": "results/grid_metrics_missing.csv",
+  "experiments_in_grid": 24,
+  "aggregated_experiments": 25,
+  "missing_experiments": 0,
+  "included_baseline": true
+}

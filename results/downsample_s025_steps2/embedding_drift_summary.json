@@ -1,0 +1,11 @@
+{
+  "valid_samples": 4307,
+  "invalid_samples": 17,
+  "cosine_mean": 0.141710771600207,
+  "cosine_std": 0.0718759986066066,
+  "cosine_median": 0.1317678689956665,
+  "cosine_q1": 0.10984992980957031,
+  "cosine_q3": 0.15911820530891418,
+  "euclidean_mean": 11.271656561706026,
+  "euclidean_std": 2.092509834371359
+}

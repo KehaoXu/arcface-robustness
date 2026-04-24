@@ -1,0 +1,6 @@
+{
+  "total_samples": 4324,
+  "successful_embeddings": 4287,
+  "failed_embeddings": 37,
+  "success_rate": 0.9914431082331174
+}
